@@ -18,6 +18,7 @@ export class InMemoryUsersRepository implements IUsersRepository {
     const user = new User()
     Object.assign(user, data)
     this.users.push(user)
+
     return user
   }
 }

@@ -27,9 +27,7 @@ export class GetBalanceUseCase {
   async execute({ user_id }: IRequest): Promise<IResponse> {
     const user = await this.usersRepository.findById(user_id)
 
-    if (!user) {
-      throw new GetBalanceError()
-    }
+    if (!user) throw new GetBalanceError()
 
     const balance = await this.statementsRepository.getUserBalance({
       user_id,

@@ -26,15 +26,11 @@ export class AuthenticateUserUseCase {
   }: IRequest): Promise<IAuthenticateUserResponseDTO> {
     const user = await this.usersRepository.findByEmail(email)
 
-    if (!user) {
-      throw new IncorrectEmailOrPasswordError()
-    }
+    if (!user) throw new IncorrectEmailOrPasswordError()
 
     const passwordMatch = await compare(password, user.password)
 
-    if (!passwordMatch) {
-      throw new IncorrectEmailOrPasswordError()
-    }
+    if (!passwordMatch) throw new IncorrectEmailOrPasswordError()
 
     const { secret, expiresIn } = authConfig.jwt
 

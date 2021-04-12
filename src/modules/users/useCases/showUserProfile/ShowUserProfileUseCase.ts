@@ -13,9 +13,7 @@ export class ShowUserProfileUseCase {
   async execute(user_id: string) {
     const user = await this.usersRepository.findById(user_id)
 
-    if (!user) {
-      throw new ShowUserProfileError()
-    }
+    if (!user) throw new ShowUserProfileError()
 
     return user
   }

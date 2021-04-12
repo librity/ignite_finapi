@@ -23,28 +23,23 @@ export class TransferBetweenAccountsUseCase {
   }: ITransferBetweenAccountsDTO): Promise<Statement> {
     const senderExists = await this.usersRepository.findById(sender_id)
 
-    if (!senderExists) {
-      throw new TransferBetweenAccountsError.SenderNotFound()
-    }
+    if (!senderExists) throw new TransferBetweenAccountsError.SenderNotFound()
 
     const recipientExists = await this.usersRepository.findById(user_id)
 
-    if (!recipientExists) {
+    if (!recipientExists)
       throw new TransferBetweenAccountsError.RecipientNotFound()
-    }
 
-    if (sender_id === user_id) {
+    if (sender_id === user_id)
       throw new TransferBetweenAccountsError.TransferRequiresDifferentUsers()
-    }
 
     const currentBalance = await this.statementsRepository.getUserBalance({
       user_id: sender_id,
       with_statement: false,
     })
 
-    if (currentBalance.balance < amount) {
+    if (currentBalance.balance < amount)
       throw new TransferBetweenAccountsError.InsufficientFunds()
-    }
 
     const transfer = await this.statementsRepository.create({
       user_id,
