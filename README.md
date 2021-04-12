@@ -1,4 +1,4 @@
-# Rocket Seat Ignite - Tests with Jest
+# Rocket Seat Ignite - FinAPI
 
 ## Table of Contents
 
@@ -8,7 +8,7 @@
 
 ## About <a name = "about"></a>
 
-A fully-tested backend made with Node, Jest and Typescript.
+A bank account API made with Node, Jest and Typescript.
 
 ## Getting Started <a name = "getting_started"></a>
 
@@ -40,6 +40,14 @@ Run tests with jest:
 
 ```bash
 $ yarn test
+```
+
+### Prettier
+
+Run prettier on all files:
+
+```bash
+$ yarn prettify
 ```
 
 ## Resources <a name = "resources"></a>

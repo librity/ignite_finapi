@@ -1,63 +1,73 @@
-import { OperationType } from './../../entities/Statement'
-import { CreateUserUseCase } from './../../../users/useCases/createUser/CreateUserUseCase'
-import { InMemoryStatementsRepository } from './../../repositories/in-memory/InMemoryStatementsRepository'
-import { InMemoryUsersRepository } from './../../../users/repositories/in-memory/InMemoryUsersRepository'
-import { GetBalanceUseCase } from './GetBalanceUseCase'
-import { ICreateUserDTO } from '@modules/users/useCases/createUser/ICreateUserDTO'
-import { CreateStatementUseCase } from '../createStatement/CreateStatementUseCase'
+import { OperationType } from '../../entities/Statement'
+import { InMemoryUsersRepository } from '../../../users/repositories/in-memory/InMemoryUsersRepository'
+import { InMemoryStatementsRepository } from '../../repositories/in-memory/InMemoryStatementsRepository'
 import { GetBalanceError } from './GetBalanceError'
+import { GetBalanceUseCase } from './GetBalanceUseCase'
 
+let inMemoryStatementsRepository: InMemoryStatementsRepository
+let inMemoryUsersRepository: InMemoryUsersRepository
 let getBalanceUseCase: GetBalanceUseCase
-let createUserUseCase: CreateUserUseCase
-let createStatementUseCase: CreateStatementUseCase
-let usersRepositoryInMemory: InMemoryUsersRepository
-let statementsRepositoryInMemory: InMemoryStatementsRepository
 
 describe('Get Balance', () => {
   beforeEach(() => {
-    statementsRepositoryInMemory = new InMemoryStatementsRepository()
-    usersRepositoryInMemory = new InMemoryUsersRepository()
-    createStatementUseCase = new CreateStatementUseCase(
-      usersRepositoryInMemory,
-      statementsRepositoryInMemory,
-    )
+    inMemoryStatementsRepository = new InMemoryStatementsRepository()
+    inMemoryUsersRepository = new InMemoryUsersRepository()
     getBalanceUseCase = new GetBalanceUseCase(
-      statementsRepositoryInMemory,
-      usersRepositoryInMemory,
+      inMemoryStatementsRepository,
+      inMemoryUsersRepository,
     )
-    createUserUseCase = new CreateUserUseCase(usersRepositoryInMemory)
   })
 
-  it('should be able to get balance', async () => {
-    const user: ICreateUserDTO = {
-      email: 'user@teste.com',
-      password: '1234',
-      name: 'User Test',
-    }
-
-    const userCreated = await createUserUseCase.execute(user)
-
-    expect(userCreated).toHaveProperty('id')
-    const user_id = userCreated.id as string
-
-    await createStatementUseCase.execute({
-      user_id,
-      type: 'deposit' as OperationType,
-      amount: 100,
-      description: 'DINDIN',
+  it('should be able to list a balance of a user', async () => {
+    const user = await inMemoryUsersRepository.create({
+      name: 'Nelson Oak',
+      email: 'nelson@nelsonoak.dev',
+      password: 'nelsonDevJS',
     })
 
-    const balance = await getBalanceUseCase.execute({ user_id })
+    await inMemoryStatementsRepository.create({
+      user_id: user.id as string,
+      description: 'some amount deposit',
+      amount: 500,
+      type: OperationType.DEPOSIT,
+    })
 
-    expect(balance.statement[0]).toHaveProperty('id')
-    expect(balance.statement.length).toBe(1)
-    expect(balance.balance).toEqual(100)
+    await inMemoryStatementsRepository.create({
+      user_id: user.id as string,
+      description: 'some amount withdraw',
+      amount: 100,
+      type: OperationType.WITHDRAW,
+    })
+
+    await inMemoryStatementsRepository.create({
+      sender_id: user.id as string,
+      user_id: 'a-recipient-user-id',
+      description: 'some amount transfer',
+      amount: 200,
+      type: OperationType.TRANSFER,
+    })
+
+    await inMemoryStatementsRepository.create({
+      sender_id: 'a-sender-user-id',
+      user_id: user.id as string,
+      description: 'some amount transfer',
+      amount: 300,
+      type: OperationType.TRANSFER,
+    })
+
+    const balance = await getBalanceUseCase.execute({
+      user_id: user.id as string,
+    })
+
+    expect(balance.balance).toBe(500)
+    expect(balance.statement.length).toBe(4)
   })
 
-  it('should not be able to get balance from non-existing user', async () => {
-    expect(async () => {
-      const user_id = 'user_non_existent'
-      await getBalanceUseCase.execute({ user_id })
-    }).rejects.toBeInstanceOf(GetBalanceError)
+  it('should not be able to list the balance of a non-existing user', async () => {
+    await expect(
+      getBalanceUseCase.execute({
+        user_id: 'non-existing-user',
+      }),
+    ).rejects.toBeInstanceOf(GetBalanceError)
   })
 })

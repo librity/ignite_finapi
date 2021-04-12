@@ -1,21 +1,30 @@
 import request from 'supertest'
-import { Connection } from 'typeorm'
-
-import createConnection from '../../../../database'
+import { v4 as uuidV4 } from 'uuid'
+import { Connection, createConnection } from 'typeorm'
 import { app } from '../../../../app'
+import { hash } from 'bcryptjs'
 
 let connection: Connection
 
-describe("Show User's Profile", () => {
+const user = {
+  id: uuidV4(),
+  email: 'nelson@nelsonoak.dev',
+  password: 'nelsonDevJs',
+  hashedPassword: '',
+}
+
+describe('Show User Profile', () => {
   beforeAll(async () => {
     connection = await createConnection()
+
+    user.hashedPassword = await hash(user.password, 8)
+
     await connection.runMigrations()
 
-    await request(app).post('/api/v1/users').send({
-      name: 'NormalUser',
-      email: 'normaluser@email.com',
-      password: 'normalpassword',
-    })
+    await connection.query(`
+      INSERT INTO users(id, name, email, password, created_at, updated_at)
+      VALUES ('${user.id}', 'Nelson Oak', '${user.email}', '${user.hashedPassword}', NOW(), NOW())
+    `)
   })
 
   afterAll(async () => {
@@ -23,10 +32,10 @@ describe("Show User's Profile", () => {
     await connection.close()
   })
 
-  it("should be able to list user's profile", async () => {
+  it('should be able to show a profile of an user', async () => {
     const responseToken = await request(app).post('/api/v1/sessions').send({
-      email: 'normaluser@email.com',
-      password: 'normalpassword',
+      email: user.email,
+      password: user.password,
     })
 
     const { token } = responseToken.body
@@ -38,27 +47,24 @@ describe("Show User's Profile", () => {
       })
 
     expect(response.status).toBe(200)
+    expect(response.body).toHaveProperty('id')
   })
 
-  it("should not be able to list non-existing user's profile", async () => {
-    const responseToken = await request(app).post('/api/v1/sessions').send({
-      email: 'usernonexistent@email.com',
-      password: 'usernonexistentpassword',
+  it('should not be able to show a profile with a false token', async () => {
+    const response = await request(app).get('/api/v1/profile').set({
+      Authorization: `Bearer false-token`,
     })
 
-    expect(responseToken.status).toBe(401)
-    expect(responseToken.body.message).toEqual('Incorrect email or password')
-    expect(responseToken.body.token).toBe(undefined)
+    expect(response.status).toBe(401)
 
-    const { token } = responseToken.body
+    expect(response.body.message).toEqual('JWT invalid token!')
+  })
 
-    const response = await request(app)
-      .get('/api/v1/profile')
-      .set({
-        Authorization: `Bearer ${token}`,
-      })
+  it('should not be able to show a profile without a token', async () => {
+    const response = await request(app).get('/api/v1/profile')
 
     expect(response.status).toBe(401)
-    expect(response.body.message).toEqual('JWT invalid token!')
+
+    expect(response.body.message).toEqual('JWT token is missing!')
   })
 })
